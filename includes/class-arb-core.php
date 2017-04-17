@@ -40,7 +40,7 @@ Class Affiliates_Referral_Bonus_Core {
 			deactivate_plugins( array( ARB_FILE ) );
 		} else {
 			// dependencies met, move on
-			add_action( 'affiliates_referral', array( __CLASS__, 'affiliates_referral_initial_bonus', 10, 2 ) );
+			add_action( 'affiliates_referral', array( __CLASS__, 'affiliates_referral_bonus', 10, 2 ) );
 			register_uninstall_hook( ARB_FILE, 	array( __CLASS__, 'arb_delete_data' ) );
 		}		
 	}
@@ -48,36 +48,22 @@ Class Affiliates_Referral_Bonus_Core {
 	/**
 	 * Calculate the affiliate bonus
 	 * 
-	 * @param unknown_type $referral_id
-	 * @param unknown_type $params
+	 * @param int $referral_id
+	 * @param array $params
 	 */
-	public static function affiliates_referral_initial_bonus( $referral_id, $params ) {
+	public static function affiliates_referral_bonus( $referral_id, $params ) {
 		$options = (array) get_option( self::PLUGIN_OPTIONS );
-		$aff_id = $params['affiliate_id'];		
-		
-		/*
-		$post_id = $params['post_id'];
-		$description = "Referral Bonus";
-		*/
-		//$currency_id = get_option( 'woocommerce_currency' );
-		//$aff_default_referral_status = get_option( 'aff_default_referral_status' ) ? get_option( 'aff_default_referral_status' ) : "pending";
-		//$type = "initial bonus for " . $referral_id;
-		//$reference = "initial bonus for " . $referral_id;
-		//$data = null;
-		//$aff_id = $params['affiliate_id'];
+		$aff_id = $params[ 'affiliate_id' ];			
 		$total_referrals = affiliates_get_affiliate_referrals( $aff_id, $from_date = null , $thru_date = null, $status = $aff_default_referral_status, $precise = false );
 	
-		if ( $total_referrals < $options[ self::REFERRALS_AMOUNT ] ) {
-			self::arb_add_bonus_coupon( $aff_id );
-			
-			/*if ( isset( $params['base_amount'] ) ) {
-				$amount = bcmul( $bonus_rate, $params['base_amount'], 2 );
-			} else {
-				$amount = bcmul( $bonus_amount, 1, 2 );
+		if ( $total_referrals < $options[ self::REFERRALS_AMOUNT ] ) {			
+			if ( self::arb_add_bonus_coupon( $aff_id ) ) {
+				// @todo send the coupon to the affiliate
+				// @todo declare arb_send_coupon() method
+				if ( self::arb_send_coupon( $aff_id ) ) {
+					
+				}
 			}
-	
-			affiliates_add_referral( $aff_id, $post_id, $description, $data, $amount, $currency_id, $aff_default_referral_status, $type, $reference );
-			*/
 		} else {
 			return;
 		}
@@ -88,10 +74,17 @@ Class Affiliates_Referral_Bonus_Core {
 	 * coupon parameters are set through the admin settings
 	 * 
 	 * @param int $affiliate_id
+	 * @return boolean
 	 */
 	public static function arb_add_bonus_coupon( $affiliate_id ) {
 		
 		$options = (array) get_option( self::PLUGIN_OPTIONS );
+		/* @todo place this block to arb_send coupon method
+		if ( function_exists( 'affiliates_get_affiliate_user' ) ) {
+			$user_id = affiliates_get_affiliate_user( $aff_id );
+			$user = get_user_by( 'ID', $user_id );
+			$user_email = $user->user_email;
+		}*/
 		// expiration date set to 1 month interval
 		$expiry_date = date( 'Y-m-d', strtotime( '+1 month' ) );
 		$author_id = self::set_coupon_author_id();
@@ -135,6 +128,8 @@ Class Affiliates_Referral_Bonus_Core {
 				}
 			}
 		}
+		
+		return $result;
 	}
 	
 	/**
