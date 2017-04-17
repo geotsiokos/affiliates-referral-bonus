@@ -5,11 +5,11 @@ if ( !defined( 'ABSPATH' ) ) {
 Class Affiliates_Referral_Bonus_Core {
 	
 	const PLUGIN_OPTIONS = 'arb-options';
-	const REFERRALS_AMOUNT = 'referrals-amount';
-	const BONUS_RATE = 'arb-bonus-rate';
-	const BONUS_AMOUNT = 'arb-bonus-amount';
-	const BONUS_DISCOUNT_TYPE = 'discount-type';
-	const COUPON_EXPIRY_DATE = 'coupon-expiry-date';
+	const REFERRALS_AMOUNT = 'reff-amount';
+	const COUPON_AMOUNT = 'coupon-amount';
+	const DISCOUNT_TYPE = 'discount-type';
+	// const COUPON_EXPIRY_DATE = 'coupon-expiry-date';
+	const DELETE_DATA = 'delete-data';
 	
 	public static function init() {
 		add_action( 'admin_notices', array( __CLASS__, 'arb_check_dependencies' ) );
@@ -28,19 +28,20 @@ Class Affiliates_Referral_Bonus_Core {
 			echo "<div class='error'>"; 
 			_e( "<strong>Affiliates Referral Bonus</strong> plugin requires one of the <a href='http://wordpress.org/plugins/affiliates/'>Affiliates</a>, <a href='http://www.itthinx.com/shop/affiliates-pro/'>Affiliates Pro</a> or <a href='http://www.itthinx.com/shop/affiliates-enterprise/'>Affiliates Enterprise</a> plugins to be installed and activated.", ARB_DOMAIN );
 			echo "</div>";
-			
+			// @todo don't deactivate for UX reasons 
 			include_once( ABSPATH . 'wp-admin/includes/plugin.php' );
 			deactivate_plugins( array( ARB_FILE ) );
 		}else if ( !$woocommerce_is_active ) {
 			echo "<div class='error'>";
 			_e( "<strong>Affiliates Referral Bonus</strong> plugin requires <a href='http://wordpress.org/plugins/woocommerce/'>WooCommerce</a> plugin to be installed and activated.", ARB_DOMAIN );
 			echo "</div>";
-			
+			// @todo don't deactivate for UX reasons
 			include_once( ABSPATH . 'wp-admin/includes/plugin.php' );
 			deactivate_plugins( array( ARB_FILE ) );
 		} else {
 			// dependencies met, move on
 			add_action( 'affiliates_referral', array( __CLASS__, 'affiliates_referral_initial_bonus', 10, 2 ) );
+			register_uninstall_hook( ARB_FILE, 	array( __CLASS__, 'arb_delete_data' ) );
 		}		
 	}
 	
@@ -82,6 +83,12 @@ Class Affiliates_Referral_Bonus_Core {
 		}
 	}
 	
+	/**
+	 * Creates a WooCommerce coupon
+	 * coupon parameters are set through the admin settings
+	 * 
+	 * @param int $affiliate_id
+	 */
 	public static function arb_add_bonus_coupon( $affiliate_id ) {
 		
 		$options = (array) get_option( self::PLUGIN_OPTIONS );
@@ -131,6 +138,17 @@ Class Affiliates_Referral_Bonus_Core {
 	}
 	
 	/**
+	 * Delete data upon plugin uninstall
+	 *
+	 */
+	public static function arb_delete_data () {
+		$options = (array) get_option( self::PLUGIN_OPTIONS );
+		if ( isset( $ptions[ self::DELETE_DATA ] ) && $options[ self::DELETE_DATA ] == 'on' ) {
+			//delete_option( self::PLUGIN_OPTIONS );
+		}
+	}
+	
+	/**
 	 * Returns the author id for gift card product
 	 * A fallback in case user_id 1 is not used
 	 *
@@ -143,8 +161,8 @@ Class Affiliates_Referral_Bonus_Core {
 			foreach( $author_ids as $author ) {
 				$result = $author->ID;				
 			}
-		}
-	
+		}	
 		return $result;
 	}
+	
 } Affiliates_Referral_Bonus_Core::init();

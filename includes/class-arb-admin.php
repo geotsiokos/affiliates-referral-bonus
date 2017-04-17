@@ -114,14 +114,13 @@ class Affiliates_Referral_Bonus_Admin {
      * @return array
      */ 
     public function settings_validation( $input ) {
-    	//write_log( 'input' );
-    	//write_log( $input );
-    	if ( isset( $input[ 'reff-amount-field' ] ) ) {
-    		if ( !is_numeric( $input[ 'reff-amount-field' ] ) ) {
-    			$input[ 'reff-amount-field' ] = preg_replace( '/[^0-9]/', '', $input[ 'reff-amount-field' ] );
+    	
+    	if ( isset( $input[ 'reff-amount' ] ) ) {
+    		if ( !is_numeric( $input[ 'reff-amount' ] ) ) {
+    			$input[ 'reff-amount' ] = preg_replace( '/[^0-9]/', '', $input[ 'reff-amount' ] );
     		}
     	} else {
-    		$input[ 'reff-amount-field' ] = 0;
+    		$input[ 'reff-amount' ] = 0;
     	}
     	
     	if ( isset( $input[ 'coupon-amount' ] ) ) {
@@ -131,8 +130,15 @@ class Affiliates_Referral_Bonus_Admin {
     	} else {
     		$input[ 'coupon-amount' ] = 0;
     	}
-    	write_log( 'input' );
-    	write_log( $input );
+    	
+    	if ( !isset( $input[ 'discount-type' ] ) ) {
+    		$input[ 'discount-type' ] = 'cart_discount';
+    	}
+    	
+    	if ( !isset( $input[ 'delete-data' ] ) ) {
+    		$input[ 'delete-data' ] = '';
+    	}
+    	
     	return $input;
     }
     
@@ -159,9 +165,9 @@ class Affiliates_Referral_Bonus_Admin {
      */
     public function referrals_amount_field() {
     	$options = (array) get_option( self::PLUGIN_OPTIONS );
-    	$arb_reff_amount = isset( $options[ 'reff-amount-field' ] ) ? $options[ 'reff-amount-field' ] : '';
+    	$arb_reff_amount = isset( $options[ 'reff-amount' ] ) ? $options[ 'reff-amount' ] : '';
     	 
-    	echo	'<input id="referrals_amount_field" type="text" class="referrals_amount_field" name="'. self::PLUGIN_OPTIONS .'[reff-amount-field]" value="'.$arb_reff_amount.'" maxlength="3" size="3" />';    	
+    	echo	'<input id="referrals_amount_field" type="text" class="referrals_amount_field" name="'. self::PLUGIN_OPTIONS .'[reff-amount]" value="'.$arb_reff_amount.'" maxlength="3" size="3" />';    	
     }
     
     /**
@@ -222,7 +228,7 @@ class Affiliates_Referral_Bonus_Admin {
     	$options = (array) get_option( self::PLUGIN_OPTIONS );
     	$arb_delete_data = isset( $options[ 'delete-data' ] ) ? $options[ 'delete-data' ] : '';
     	 
-    	echo	'<input id="delete_data" name="'. self::PLUGIN_OPTIONS .'[delete-data]" type="checkbox" '. ( $arb_delete_data ? ' checked="checked" ' : '' ) .' />';
+    	echo	'<input id="delete_data" name="'. self::PLUGIN_OPTIONS .'[delete-data]" type="checkbox" '. ( $arb_delete_data == 'on' ? ' checked="checked" ' : '' ) .' />';
     }
     
     /**
