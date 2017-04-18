@@ -54,13 +54,13 @@ Class Affiliates_Referral_Bonus_Core {
 	public static function affiliates_referral_bonus( $referral_id, $params ) {
 		$options = (array) get_option( self::PLUGIN_OPTIONS );
 		$aff_id = $params[ 'affiliate_id' ];			
-		$total_referrals = affiliates_get_affiliate_referrals( $aff_id, $from_date = null , $thru_date = null, $status = $aff_default_referral_status, $precise = false );
-	
-		if ( $total_referrals < $options[ self::REFERRALS_AMOUNT ] ) {			
-			if ( self::arb_add_bonus_coupon( $aff_id ) ) {
+		$total_referrals = affiliates_get_affiliate_referrals( $aff_id, $from_date = null , $thru_date = null, $status = 'accepted', $precise = false );
+		if ( $total_referrals > $options[ self::REFERRALS_AMOUNT ] ) {
+			write_log( 'total referrals' );			
+			if ( $coupon_code = self::arb_add_bonus_coupon( $aff_id ) ) {
+				
 				// @todo send the coupon to the affiliate
-				// @todo declare arb_send_coupon() method
-				if ( self::arb_send_coupon( $aff_id ) ) {
+				if ( self::arb_send_coupon( $aff_id, $coupon_code ) ) {
 					
 				}
 			}
@@ -74,17 +74,12 @@ Class Affiliates_Referral_Bonus_Core {
 	 * coupon parameters are set through the admin settings
 	 * 
 	 * @param int $affiliate_id
-	 * @return boolean
+	 * @return WC Coupon code on success, false on failure
 	 */
 	public static function arb_add_bonus_coupon( $affiliate_id ) {
-		
+		$result = false;
 		$options = (array) get_option( self::PLUGIN_OPTIONS );
-		/* @todo place this block to arb_send coupon method
-		if ( function_exists( 'affiliates_get_affiliate_user' ) ) {
-			$user_id = affiliates_get_affiliate_user( $aff_id );
-			$user = get_user_by( 'ID', $user_id );
-			$user_email = $user->user_email;
-		}*/
+		
 		// expiration date set to 1 month interval
 		$expiry_date = date( 'Y-m-d', strtotime( '+1 month' ) );
 		$author_id = self::set_coupon_author_id();
@@ -125,6 +120,7 @@ Class Affiliates_Referral_Bonus_Core {
 					update_post_meta( $new_coupon_id, 'apply_before_tax', 'yes' );
 					update_post_meta( $new_coupon_id, 'free_shipping', 'no' );
 					update_post_meta( $new_coupon_id, 'minimum_amount', $bonus_amount );
+					$result = $coupon_code;
 				}
 			}
 		}
@@ -157,6 +153,33 @@ Class Affiliates_Referral_Bonus_Core {
 				$result = $author->ID;				
 			}
 		}	
+		return $result;
+	}
+	
+	/**
+	 * Send coupon by email to the affiliate
+	 * 
+	 * @param int $affiliate_id, string $coupon_code
+	 * @return boolean
+	 */
+	public static function arb_send_coupon( $affiliate_id, $coupon_code ) {
+		$result = false;
+		$subject = '';
+		$message = '';
+		
+		if ( function_exists( 'affiliates_get_affiliate_user' ) ) {
+			$user_id = affiliates_get_affiliate_user( $aff_id );
+			if ( $user = get_user_by( 'ID', $user_id ) ) {
+				$user_email = $user->user_email;
+				$subject = 'You got a bonus coupon on '. get_bloginfo( 'name' );
+				$message = 'You got a bonus coupon for your referral performance on '. get_bloginfo( 'name' ) . '\n'; 
+				$message .= 'Here is your Coupon code: '. $coupon_code . '\n';
+				if ( wp_mail( $user_email, $subject, $message ) ) {
+					$result = true;
+				}
+			}
+		}
+		
 		return $result;
 	}
 	
