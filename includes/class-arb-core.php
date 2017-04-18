@@ -56,7 +56,6 @@ Class Affiliates_Referral_Bonus_Core {
 		$aff_id = $params[ 'affiliate_id' ];			
 		$total_referrals = affiliates_get_affiliate_referrals( $aff_id, $from_date = null , $thru_date = null, $status = 'accepted', $precise = false );
 		if ( $total_referrals > $options[ self::REFERRALS_AMOUNT ] ) {
-			write_log( 'total referrals' );			
 			if ( $coupon_code = self::arb_add_bonus_coupon( $aff_id ) ) {
 				
 				// @todo send the coupon to the affiliate
