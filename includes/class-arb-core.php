@@ -55,6 +55,7 @@ Class Affiliates_Referral_Bonus_Core {
 		$options = (array) get_option( self::PLUGIN_OPTIONS );
 		$aff_id = $params[ 'affiliate_id' ];			
 		$total_referrals = affiliates_get_affiliate_referrals( $aff_id, $from_date = null , $thru_date = null, $status = 'accepted', $precise = false );
+		// @todo this conditional should change to a range of referrals, ie every two referrals
 		if ( $total_referrals > $options[ self::REFERRALS_AMOUNT ] ) {
 			if ( $coupon_code = self::arb_add_bonus_coupon( $aff_id ) ) {
 				
