@@ -58,10 +58,7 @@ Class Affiliates_Referral_Bonus_Core {
 		// @todo this conditional should change to a range of referrals, ie every two referrals
 		if ( $total_referrals > $options[ self::REFERRALS_AMOUNT ] ) {
 			if ( $coupon_code = self::arb_add_bonus_coupon( $aff_id ) ) {
-				// @todo send the coupon to the affiliate
-				if ( self::arb_send_coupon( $aff_id, $coupon_code ) ) {
-					
-				}
+				self::arb_send_coupon( $aff_id, $coupon_code );
 			}
 		} else {
 			return;
@@ -78,26 +75,19 @@ Class Affiliates_Referral_Bonus_Core {
 	public static function arb_add_bonus_coupon( $affiliate_id ) {
 		// @todo duplicate coupons are created
 		$result = false;
-		$options = (array) get_option( self::PLUGIN_OPTIONS );		
-		// expiration date set to 1 month interval
+		$options = (array) get_option( self::PLUGIN_OPTIONS );
 		$expiry_date = date( 'Y-m-d', strtotime( '+1 month' ) );
-		$author_id = self::set_coupon_author_id();
-		
-		if ( date( 'dmoGis' ) ) {
-			$new_coupon_code = date( 'dmoGis' ); // 'UNIQUECODE' Code
-		}		
-		
+		$new_coupon_code = date( 'dmoGis' );		
+		$author_id = self::get_admin_id();		
 		$new_coupon = array(
-				'post_title' 	=> $new_coupon_code,	// $coupon_code
+				'post_title' 	=> $new_coupon_code,
 				'post_excerpt'	=> __('Affiliates Bonus Coupon', ARB_DOMAIN ),
 				'post_content' 	=> __('Affiliates Bonus Coupon', ARB_DOMAIN ),
 				'post_status' 	=> 'publish',
 				'post_author' 	=> $author_id,
 				'post_type'		=> 'shop_coupon'
 		);			
-		$new_coupon_id = wp_insert_post( $new_coupon );
-			
-		// Coupon meta
+		$new_coupon_id = wp_insert_post( $new_coupon );			
 		if ( $new_coupon_id != 0 ) {
 			update_post_meta( $new_coupon_id, 'discount_type', $options[ self::DISCOUNT_TYPE ] );
 			update_post_meta( $new_coupon_id, 'coupon_amount', $options[ self::COUPON_AMOUNT ] );
@@ -106,7 +96,7 @@ Class Affiliates_Referral_Bonus_Core {
 			update_post_meta( $new_coupon_id, 'exclude_product_ids', '' );
 			update_post_meta( $new_coupon_id, 'usage_limit', '1' );
 			update_post_meta( $new_coupon_id, 'usage_limit_per_user', '1');
-			update_post_meta( $new_coupon_id, 'expiry_date', $expiry_date ); //YYYY-MM-DD
+			update_post_meta( $new_coupon_id, 'expiry_date', $expiry_date );
 			update_post_meta( $new_coupon_id, 'apply_before_tax', 'yes' );
 			update_post_meta( $new_coupon_id, 'free_shipping', 'no' );
 			$result = $new_coupon_code;
@@ -127,12 +117,12 @@ Class Affiliates_Referral_Bonus_Core {
 	}
 	
 	/**
-	 * Returns the author id for gift card product
-	 * A fallback in case user_id 1 is not used
+	 * Returns the user id for administrator or 
+	 * shop manager, in case user_id 1 is not used
 	 *
 	 * @return int user_id
 	 */
-	public static function set_coupon_author_id () {
+	private static function get_admin_id () {
 		$result = 1;	
 		if ( !get_user_by( 'ID', 1 ) ) {
 			$author_ids = get_users( array( 'role__in' => array( 'administrator', 'shop_manager' ), 'fields' => array( 'ID' ) ) );
@@ -151,6 +141,7 @@ Class Affiliates_Referral_Bonus_Core {
 	 */
 	public static function arb_send_coupon( $affiliate_id, $coupon_code ) {
 		$result = false;
+		$user_email = '';
 		$subject = '';
 		$message = '';
 		
@@ -161,10 +152,18 @@ Class Affiliates_Referral_Bonus_Core {
 				$subject = 'You got a bonus coupon on '. get_bloginfo( 'name' );
 				$message = 'You got a bonus coupon for your referral performance on '. get_bloginfo( 'name' ) . '\n'; 
 				$message .= 'Here is your Coupon code: '. $coupon_code . '\n';
-				if ( wp_mail( $user_email, $subject, $message ) ) {
-					$result = true;
-				}
-			}
+			} else {
+				$user_id = self::get_admin_id();
+				$user = get_user_by( 'ID', $user_id );
+				$user_email = $user->user_email;
+				$subject = 'There is a bonus coupon for affiliate with id ' . $affiliate_id;
+				$message = 'There is a bonus coupon for affiliate with id ' . $affiliate_id . 'but there is no registered email address.';
+				$message .= 'The Coupon code is: '. $coupon_code;
+			}				
+
+			if ( wp_mail( $user_email, $subject, $message ) ) {
+				$result = true;
+			}			
 		}
 		
 		return $result;
