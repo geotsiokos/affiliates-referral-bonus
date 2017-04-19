@@ -22,9 +22,8 @@ class Affiliates_Referral_Bonus_Admin {
 	 * 
 	 */ 
 	public function arb_admin_menu() {
-		// @todo add it under Affiliates menu
 		add_submenu_page( 
-				'options-general.php',
+				'affiliates-admin',
 				'Affiliates Referral Bonus Settings',
 				'Affiliates Bonus',
 				'manage_options',
