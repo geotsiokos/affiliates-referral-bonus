@@ -4,47 +4,47 @@ if ( !defined( 'ABSPATH' ) ) {
 }
 Class Affiliates_Referral_Bonus_Core {
 	
-	const PLUGIN_OPTIONS = 'arb-options';
-	const REFERRALS_AMOUNT = 'reff-amount';
-	const COUPON_AMOUNT = 'coupon-amount';
-	const DISCOUNT_TYPE = 'discount-type';
+	const PLUGIN_OPTIONS 	= 'arb-options';
+	const REFERRALS_AMOUNT 	= 'reff-amount';
+	const COUPON_AMOUNT 	= 'coupon-amount';
+	const DISCOUNT_TYPE 	= 'discount-type';
 	// const COUPON_EXPIRY_DATE = 'coupon-expiry-date';
-	const DELETE_DATA = 'delete-data';
+	const DELETE_DATA 		= 'delete-data';
 	
-	public static function init() {
-		add_action( 'admin_notices', array( __CLASS__, 'arb_check_dependencies' ) );
+	public static function init() {		
+		if ( self::arb_check_dependencies() ) {
+			add_action( 'affiliates_referral',	array( __CLASS__, 'affiliates_referral_bonus' ), 10, 2 );
+			register_uninstall_hook( ARB_FILE, 	array( __CLASS__, 'arb_delete_data' ) );
+		}
 	}
 	
 	/**
-	 * Check plugin dependencies
-	 * if not met, print an admin notice
+	 * Check plugin dependencies.
+	 * If not met, print an admin notice
+	 * 
+	 * @return boolean
 	 */
-	public static function arb_check_dependencies () {
+	public static function arb_check_dependencies() {
+		$result = false;
 		$active_plugins = get_option( 'active_plugins', array() );
 		$affiliates_is_active = in_array( 'affiliates/affiliates.php', $active_plugins ) || in_array( 'affiliates-pro/affiliates-pro.php', $active_plugins ) || in_array( 'affiliates-enterprise/affiliates-enterprise.php', $active_plugins );
-		$woocommerce_is_active = in_array( 'woocommerce/woocommerce.php', $active_plugins );
-	
+		$woocommerce_is_active = in_array( 'woocommerce/woocommerce.php', $active_plugins );		
+		
 		if ( !$affiliates_is_active ) {
 			echo "<div class='error'>"; 
 			_e( "<strong>Affiliates Referral Bonus</strong> plugin requires one of the <a href='http://wordpress.org/plugins/affiliates/'>Affiliates</a>, <a href='http://www.itthinx.com/shop/affiliates-pro/'>Affiliates Pro</a> or <a href='http://www.itthinx.com/shop/affiliates-enterprise/'>Affiliates Enterprise</a> plugins to be installed and activated.", ARB_DOMAIN );
-			echo "</div>";
-			// @todo don't deactivate for UX reasons 
-			include_once( ABSPATH . 'wp-admin/includes/plugin.php' );
-			deactivate_plugins( array( ARB_FILE ) );
+			echo "</div>";			
 		}else if ( !$woocommerce_is_active ) {
 			echo "<div class='error'>";
 			_e( "<strong>Affiliates Referral Bonus</strong> plugin requires <a href='http://wordpress.org/plugins/woocommerce/'>WooCommerce</a> plugin to be installed and activated.", ARB_DOMAIN );
 			echo "</div>";
-			// @todo don't deactivate for UX reasons
-			include_once( ABSPATH . 'wp-admin/includes/plugin.php' );
-			deactivate_plugins( array( ARB_FILE ) );
 		} else {
-			// dependencies met, move on
-			add_action( 'affiliates_referral', array( __CLASS__, 'affiliates_referral_bonus', 10, 2 ) );
-			register_uninstall_hook( ARB_FILE, 	array( __CLASS__, 'arb_delete_data' ) );
+			$result = true;
 		}		
+		
+		return $result;
 	}
-	
+		
 	/**
 	 * Calculate the affiliate bonus
 	 * 
@@ -53,12 +53,11 @@ Class Affiliates_Referral_Bonus_Core {
 	 */
 	public static function affiliates_referral_bonus( $referral_id, $params ) {
 		$options = (array) get_option( self::PLUGIN_OPTIONS );
-		$aff_id = $params[ 'affiliate_id' ];			
+		$aff_id = $params[ 'affiliate_id' ];
 		$total_referrals = affiliates_get_affiliate_referrals( $aff_id, $from_date = null , $thru_date = null, $status = 'accepted', $precise = false );
 		// @todo this conditional should change to a range of referrals, ie every two referrals
 		if ( $total_referrals > $options[ self::REFERRALS_AMOUNT ] ) {
 			if ( $coupon_code = self::arb_add_bonus_coupon( $aff_id ) ) {
-				
 				// @todo send the coupon to the affiliate
 				if ( self::arb_send_coupon( $aff_id, $coupon_code ) ) {
 					
@@ -70,60 +69,48 @@ Class Affiliates_Referral_Bonus_Core {
 	}
 	
 	/**
-	 * Creates a WooCommerce coupon
-	 * coupon parameters are set through the admin settings
+	 * Creates a WooCommerce coupon.
+	 * Coupon parameters are retrieved from the admin settings
 	 * 
 	 * @param int $affiliate_id
 	 * @return WC Coupon code on success, false on failure
 	 */
 	public static function arb_add_bonus_coupon( $affiliate_id ) {
+		// @todo duplicate coupons are created
 		$result = false;
-		$options = (array) get_option( self::PLUGIN_OPTIONS );
-		
+		$options = (array) get_option( self::PLUGIN_OPTIONS );		
 		// expiration date set to 1 month interval
 		$expiry_date = date( 'Y-m-d', strtotime( '+1 month' ) );
 		$author_id = self::set_coupon_author_id();
 		
 		if ( date( 'dmoGis' ) ) {
 			$new_coupon_code = date( 'dmoGis' ); // 'UNIQUECODE' Code
-		}
-			
-		$coupon = new WC_Coupon( $new_coupon_code );
-		if ( !is_null( $coupon_post = get_post( $coupon->get_id() ) ) ) {			
-			/*$coupon_data = array(
-					'id' => $coupon->get_id(),
-					'code' => $coupon->get_code()
-			);*/
-				
-			if ( $new_coupon_code !== $coupon->get_code() ) {
+		}		
 		
-				$new_coupon = array(
-						'post_title' 	=> $coupon_code,	// $coupon_code
-						'post_content' 	=> __('Affiliates Bonus Coupon', ARB_DOMAIN ),
-						'post_status' 	=> 'publish',
-						'post_author' 	=> $author_id,
-						'post_type'		=> 'shop_coupon'
-				);
-					
-				$new_coupon_id = wp_insert_post( $new_coupon );
-					
-				// Coupon meta
-				if ( $new_coupon_id != 0 ) {
-					update_post_meta( $new_coupon_id, 'discount_type', $options[ self::BONUS_DISCOUNT_TYPE ] );
-					update_post_meta( $new_coupon_id, 'coupon_amount', $options[ self::BONUS_AMOUNT ] );
-					update_post_meta( $new_coupon_id, 'individual_use', 'yes' );
-					update_post_meta( $new_coupon_id, 'product_ids', '' );
-					update_post_meta( $new_coupon_id, 'exclude_product_ids', '' );
-					update_post_meta( $new_coupon_id, 'usage_limit', '1' );
-					update_post_meta( $new_coupon_id, 'usage_limit_per_user', '1');
-					update_post_meta( $new_coupon_id, 'expiry_date', $options[ self::COUPON_EXPIRY_DATE ] ); //YYYY-MM-DD
-					update_post_meta( $new_coupon_id, 'apply_before_tax', 'yes' );
-					update_post_meta( $new_coupon_id, 'free_shipping', 'no' );
-					update_post_meta( $new_coupon_id, 'minimum_amount', $bonus_amount );
-					$result = $coupon_code;
-				}
-			}
-		}
+		$new_coupon = array(
+				'post_title' 	=> $new_coupon_code,	// $coupon_code
+				'post_excerpt'	=> __('Affiliates Bonus Coupon', ARB_DOMAIN ),
+				'post_content' 	=> __('Affiliates Bonus Coupon', ARB_DOMAIN ),
+				'post_status' 	=> 'publish',
+				'post_author' 	=> $author_id,
+				'post_type'		=> 'shop_coupon'
+		);			
+		$new_coupon_id = wp_insert_post( $new_coupon );
+			
+		// Coupon meta
+		if ( $new_coupon_id != 0 ) {
+			update_post_meta( $new_coupon_id, 'discount_type', $options[ self::DISCOUNT_TYPE ] );
+			update_post_meta( $new_coupon_id, 'coupon_amount', $options[ self::COUPON_AMOUNT ] );
+			update_post_meta( $new_coupon_id, 'individual_use', 'yes' );
+			update_post_meta( $new_coupon_id, 'product_ids', '' );
+			update_post_meta( $new_coupon_id, 'exclude_product_ids', '' );
+			update_post_meta( $new_coupon_id, 'usage_limit', '1' );
+			update_post_meta( $new_coupon_id, 'usage_limit_per_user', '1');
+			update_post_meta( $new_coupon_id, 'expiry_date', $expiry_date ); //YYYY-MM-DD
+			update_post_meta( $new_coupon_id, 'apply_before_tax', 'yes' );
+			update_post_meta( $new_coupon_id, 'free_shipping', 'no' );
+			$result = $new_coupon_code;
+		}		
 		
 		return $result;
 	}
@@ -168,7 +155,7 @@ Class Affiliates_Referral_Bonus_Core {
 		$message = '';
 		
 		if ( function_exists( 'affiliates_get_affiliate_user' ) ) {
-			$user_id = affiliates_get_affiliate_user( $aff_id );
+			$user_id = affiliates_get_affiliate_user( $affiliate_id );
 			if ( $user = get_user_by( 'ID', $user_id ) ) {
 				$user_email = $user->user_email;
 				$subject = 'You got a bonus coupon on '. get_bloginfo( 'name' );
