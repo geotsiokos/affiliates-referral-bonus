@@ -185,10 +185,9 @@ class Affiliates_Referral_Bonus_Admin {
     public function coupon_fields( $args ) {
     	$options = (array) get_option( self::PLUGIN_OPTIONS );
     	$discount_types = array( 
-    			'cart_discount'				=> 'Cart Discount', 
-    			'cart_prcnt_discount'		=> 'Cart % Discount', 
-    			'product_discount'			=> 'Product Discount', 
-    			'product_prcnt_discount'	=> 'Product % Discount' 
+    			'prcnt_discount'			=> 'Percentage Discount', 
+    			'fixed_cart_discount'		=> 'Fixed Cart Discount', 
+    			'fixed_product_discount'	=> 'Fixed Product Discount',
     	);
     	
     	switch ( $args[ 'field' ] ) {
