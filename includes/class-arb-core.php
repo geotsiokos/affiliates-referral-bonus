@@ -8,6 +8,7 @@ Class Affiliates_Referral_Bonus_Core {
 	const REFERRALS_AMOUNT 	= 'reff-amount';
 	const COUPON_AMOUNT 	= 'coupon-amount';
 	const DISCOUNT_TYPE 	= 'discount-type';
+	const BONUS_CONDITION 	= 'bonus-condition';
 	// const COUPON_EXPIRY_DATE = 'coupon-expiry-date';
 	const DELETE_DATA 		= 'delete-data';
 	
@@ -55,13 +56,28 @@ Class Affiliates_Referral_Bonus_Core {
 		$options = (array) get_option( self::PLUGIN_OPTIONS );
 		$aff_id = $params[ 'affiliate_id' ];
 		$total_referrals = affiliates_get_affiliate_referrals( $aff_id, $from_date = null , $thru_date = null, $status = 'accepted', $precise = false );
-		// @todo this conditional should change to a range of referrals, ie every two referrals
-		if ( $total_referrals > $options[ self::REFERRALS_AMOUNT ] ) {
-			if ( $coupon_code = self::arb_add_bonus_coupon( $aff_id ) ) {
-				self::arb_send_coupon( $aff_id, $coupon_code );
-			}
-		} else {
-			return;
+		$condition = $options[ self::BONUS_CONDITION ];
+		
+		switch ( $condition ) {
+			case 'every' :
+				if ( ( $total_referrals % $options[ self::REFERRALS_AMOUNT ] == 0 ) && $total_referrals >= $options[ self::REFERRALS_AMOUNT ] ) {
+					if ( $coupon_code = self::arb_add_bonus_coupon( $aff_id ) ) {
+						self::arb_send_coupon( $aff_id, $coupon_code );
+					}
+				} else {
+					break;
+				}
+				break;
+				
+			case 'after' :
+				if ( $total_referrals == $options[ self::REFERRALS_AMOUNT ] ) {
+					if ( $coupon_code = self::arb_add_bonus_coupon( $aff_id ) ) {
+						self::arb_send_coupon( $aff_id, $coupon_code );
+					}
+				} else {
+					break;
+				}
+				break;
 		}
 	}
 	
@@ -73,12 +89,12 @@ Class Affiliates_Referral_Bonus_Core {
 	 * @return WC Coupon code on success, false on failure
 	 */
 	public static function arb_add_bonus_coupon( $affiliate_id ) {
-		// @todo duplicate coupons are created
 		$result = false;
 		$options = (array) get_option( self::PLUGIN_OPTIONS );
 		$expiry_date = date( 'Y-m-d', strtotime( '+1 month' ) );
 		$new_coupon_code = date( 'dmoGis' );		
-		$author_id = self::get_admin_id();		
+		$author_id = self::get_admin_id();	
+			
 		$new_coupon = array(
 				'post_title' 	=> $new_coupon_code,
 				'post_excerpt'	=> __('Affiliates Bonus Coupon', ARB_DOMAIN ),
@@ -112,7 +128,7 @@ Class Affiliates_Referral_Bonus_Core {
 	public static function arb_delete_data () {
 		$options = (array) get_option( self::PLUGIN_OPTIONS );
 		if ( isset( $ptions[ self::DELETE_DATA ] ) && $options[ self::DELETE_DATA ] == 'on' ) {
-			//delete_option( self::PLUGIN_OPTIONS );
+			delete_option( self::PLUGIN_OPTIONS );
 		}
 	}
 	

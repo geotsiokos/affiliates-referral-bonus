@@ -1,8 +1,4 @@
 <?php
-
-// @todo modify readme.txt add new features tags etc...
-// @todo add assets folder to keep css js images etc...
-
 class Affiliates_Referral_Bonus_Admin {	
 	
 	const PLUGIN_OPTIONS = 'arb-options';
@@ -12,9 +8,8 @@ class Affiliates_Referral_Bonus_Admin {
 	}	
 
 	public function init() {
-		add_action( 'admin_menu', 				array( $this, 'arb_admin_menu' ) );
-		add_action( 'admin_init', 				array( $this, 'arb_admin_init' ) );
-		//add_action( 'admin_enqueue_scripts', 	array( $this, 'arb_admin_enqueue_scripts' ) );
+		add_action( 'admin_menu', array( $this, 'arb_admin_menu' ) );
+		add_action( 'admin_init', array( $this, 'arb_admin_init' ) );
 	}
 		
 	/**
@@ -32,7 +27,9 @@ class Affiliates_Referral_Bonus_Admin {
 		);
 	}
 	
-	
+	/**
+	 * The admin options page contents
+	 */
 	public function arb_settings()	{		
         echo '<div class="wrap">';
         echo '<h2>Affiliates Referral Bonus Settings</h2>';            
@@ -45,27 +42,38 @@ class Affiliates_Referral_Bonus_Admin {
         echo '</div>';
     }
     
+    /**
+     * Sections and form fields
+     */
     public function arb_admin_init() {  
     	register_setting ( 
     			'arb_settings', 
     			self::PLUGIN_OPTIONS, 		
     			array( $this, 'settings_validation' ) 
     	);
-    	// Referrals amount section
+    	// Referrals bounus section
     	add_settings_section( 
-    			'referrals_amount_section', 
+    			'referrals_bonus_section', 
     			__( 'Choose the amount of referrals', ARB_DOMAIN ), 
-    			array( $this, 'referrals_amount_section' ), 
+    			array( $this, 'referrals_bonus_section' ), 
     			'arb-settings' 
-    	);    	    	
+    	);   
+    	add_settings_field(
+    			'bonus_condition',
+    			__( 'Referral Bonus Condition', ARB_DOMAIN ),
+    			array( $this, 'referrals_bonus_fields' ),
+    			'arb-settings',
+    			'referrals_bonus_section',
+    			array ( 'field' => 'condition' )
+    	);
     	add_settings_field( 
     			'referrals_amount_field', 
     			__( 'Referrals Amount Field', ARB_DOMAIN ), 
-    			array( $this, 'referrals_amount_field' ), 
+    			array( $this, 'referrals_bonus_fields' ), 
     			'arb-settings', 
-    			'referrals_amount_section' 
-    	);
-    	
+    			'referrals_bonus_section',
+    			array ( 'field' => 'amount' )
+    	);    	
     	// Coupon section
     	add_settings_section( 
     			'coupon_settings_section', 
@@ -88,8 +96,7 @@ class Affiliates_Referral_Bonus_Admin {
     			'arb-settings',
     			'coupon_settings_section',
     			array( 'field' => 'coupon_amount' )
-    	);
-    	
+    	);    	
     	// Data persistence
     	add_settings_section( 
     			'data_persistence_section', 
@@ -131,7 +138,7 @@ class Affiliates_Referral_Bonus_Admin {
     	}
     	
     	if ( !isset( $input[ 'discount-type' ] ) ) {
-    		$input[ 'discount-type' ] = 'cart_discount';
+    		$input[ 'discount-type' ] = 'prcnt_discount';
     	}
     	
     	if ( !isset( $input[ 'delete-data' ] ) ) {
@@ -144,7 +151,7 @@ class Affiliates_Referral_Bonus_Admin {
     /**
      * Referrals amount section
      */
-    public function referrals_amount_section() {
+    public function referrals_bonus_section() {
     	_e( 'The number entered here will be used as limit when to grant the affiliate the bonus. ', ARB_DOMAIN );
     	_e( 'The value can range between: ', ARB_DOMAIN );
     	echo '<strong>0-999</strong>';
@@ -155,18 +162,42 @@ class Affiliates_Referral_Bonus_Admin {
     	echo '</strong><br />';
     	_e( 'Indicate <strong>0</strong> for no affiliate bonus.', ARB_DOMAIN );
     	echo '<br />';
-    	_e( 'Indicate <strong>2</strong> to grant the affiliate a bonus when they have two referrals recorded.', ARB_DOMAIN );
+    	_e( 'Indicate <strong>Every</strong> and <strong>2</strong> to grant the affiliate a bonus for every two referrals they have recorded.', ARB_DOMAIN );
+    	echo '<br />';
+    	_e( 'Indicate <strong>After</strong> and <strong>2</strong> to grant the affiliate a bonus after two referrals they have recorded.', ARB_DOMAIN );
     	echo '</p>';
     }
     
     /**
-     * Background color field
+     * Referral bonus fields form
+     * 
+     * @param array 
      */
-    public function referrals_amount_field() {
+    public function referrals_bonus_fields( $args ) {
     	$options = (array) get_option( self::PLUGIN_OPTIONS );
-    	$arb_reff_amount = isset( $options[ 'reff-amount' ] ) ? $options[ 'reff-amount' ] : '';
-    	 
-    	echo	'<input id="referrals_amount_field" type="text" class="referrals_amount_field" name="'. self::PLUGIN_OPTIONS .'[reff-amount]" value="'.$arb_reff_amount.'" maxlength="3" size="3" />';    	
+    	$conditions = array( 
+    			'every' => 'Every',
+    			'after' => 'After'
+    	);
+    	
+    	switch ( $args[ 'field' ] ) {
+    		case 'condition':
+    			$arb_bonus_condition = isset( $options[ 'bonus-condition' ] ) ? $options[ 'bonus-condition' ] : '';
+    			echo '<select name="'. self::PLUGIN_OPTIONS .'[bonus-condition]">';
+    			foreach( $conditions as $condition => $label ) {
+    				$selected = '';
+    				if ( $arb_bonus_condition == $condition ) {
+    					$selected = 'selected';
+    				}
+    				echo '<option value="'. $condition .'" '. $selected .'>'. $label .'</option>';
+    			}
+    			break;
+    			
+    		case 'amount':
+    			$arb_reff_amount = isset( $options[ 'reff-amount' ] ) ? $options[ 'reff-amount' ] : '';    			
+    			echo	'<input id="referrals_amount_field" type="text" class="referrals_amount_field" name="'. self::PLUGIN_OPTIONS .'[reff-amount]" value="'.$arb_reff_amount.'" maxlength="3" size="3" />';
+    			break;
+    	}    	    	
     }
     
     /**
@@ -177,7 +208,7 @@ class Affiliates_Referral_Bonus_Admin {
     }
     
     /**
-     * Coupon fields
+     * Coupon form fields
      * 
      * @param array $args
      */
@@ -192,7 +223,6 @@ class Affiliates_Referral_Bonus_Admin {
     	switch ( $args[ 'field' ] ) {
     		case 'discount_type' :
     			$arb_discount_type = isset( $options[ 'discount-type' ] ) ? $options[ 'discount-type' ] : '';
-    			//$arb_discount_type = 'product_discount';
     			echo '<select name="'. self::PLUGIN_OPTIONS .'[discount-type]">';
     			foreach( $discount_types as $type => $label ) {
     				$selected = '';
@@ -220,7 +250,7 @@ class Affiliates_Referral_Bonus_Admin {
     }
     
     /**
-     * Data persistence upon plugin deactivation
+     * Data persistence callback
      */
     public function delete_data() {
     	$options = (array) get_option( self::PLUGIN_OPTIONS );
@@ -246,11 +276,9 @@ class Affiliates_Referral_Bonus_Admin {
     		$second_piece = substr( $input_string, $first_occur + 1 );
     		$second_piece = str_replace( '.', '', $second_piece );
     		$result = $first_piece . "." .$second_piece;
-    	}
-    	
+    	}    	
     	return $result;
     }
-
 }
 if( is_admin() ) {
 	new Affiliates_Referral_Bonus_Admin();
