@@ -119,8 +119,7 @@ class Affiliates_Referral_Bonus_Admin {
      * @param array $input 
      * @return array
      */ 
-    public function settings_validation( $input ) {
-    	
+    public function settings_validation( $input ) {    	
     	if ( isset( $input[ 'reff-amount' ] ) ) {
     		if ( !is_numeric( $input[ 'reff-amount' ] ) ) {
     			$input[ 'reff-amount' ] = preg_replace( '/[^0-9]/', '', $input[ 'reff-amount' ] );
@@ -254,8 +253,7 @@ class Affiliates_Referral_Bonus_Admin {
      */
     public function delete_data() {
     	$options = (array) get_option( self::PLUGIN_OPTIONS );
-    	$arb_delete_data = isset( $options[ 'delete-data' ] ) ? $options[ 'delete-data' ] : '';
-    	 
+    	$arb_delete_data = isset( $options[ 'delete-data' ] ) ? $options[ 'delete-data' ] : '';    	 
     	echo	'<input id="delete_data" name="'. self::PLUGIN_OPTIONS .'[delete-data]" type="checkbox" '. ( $arb_delete_data == 'on' ? ' checked="checked" ' : '' ) .' />';
     }
     
