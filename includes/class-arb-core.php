@@ -9,7 +9,6 @@ Class Affiliates_Referral_Bonus_Core {
 	const COUPON_AMOUNT 	= 'coupon-amount';
 	const DISCOUNT_TYPE 	= 'discount-type';
 	const BONUS_CONDITION 	= 'bonus-condition';
-	// const COUPON_EXPIRY_DATE = 'coupon-expiry-date';
 	const DELETE_DATA 		= 'delete-data';
 	
 	public static function init() {		
@@ -41,8 +40,7 @@ Class Affiliates_Referral_Bonus_Core {
 			echo "</div>";
 		} else {
 			$result = true;
-		}		
-		
+		}				
 		return $result;
 	}
 		
@@ -116,8 +114,7 @@ Class Affiliates_Referral_Bonus_Core {
 			update_post_meta( $new_coupon_id, 'apply_before_tax', 'yes' );
 			update_post_meta( $new_coupon_id, 'free_shipping', 'no' );
 			$result = $new_coupon_code;
-		}		
-		
+		}				
 		return $result;
 	}
 	
@@ -180,8 +177,7 @@ Class Affiliates_Referral_Bonus_Core {
 			if ( wp_mail( $user_email, $subject, $message ) ) {
 				$result = true;
 			}			
-		}
-		
+		}		
 		return $result;
 	}
 	

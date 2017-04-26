@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Affiliates Referral Bonus
  * Plugin URI: http://www.netpad.gr
- * Description: Grant your affiliates a bonus for their referrals
+ * Description: Grant your affiliates a bonus coupon for their referral performance
  * Version: 1.0
  * Author: George Tsiokos
  * Author URI: http://www.netpad.gr
@@ -36,5 +36,5 @@ define( 'ARB_URL_INCLUDES',		ARB_URL . 'includes/' );
 define( 'ARB_DOMAIN', 			'aff-referral-bonus' );
 define( 'ARB_LANG', 			dirname( plugin_basename( __FILE__ ) ) . '/languages/' );
 
-require_once( ARB_DIR_INCLUDES . 	'class-arb-admin.php' );
-require_once( ARB_DIR_INCLUDES . 	'class-arb-core.php' );
+require_once( ARB_DIR_INCLUDES . 'class-arb-admin.php' );
+require_once( ARB_DIR_INCLUDES . 'class-arb-core.php' );
